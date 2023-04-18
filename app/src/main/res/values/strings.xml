@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">fallDetection</string>
+    <string name="all_the_numbers">Accelerometer - Value for x is %1$s, Value for y is %2$s, Value for z is %3$s</string>
+    <string name="all_the_other_numbers">Gyroscope - Value for x is %1$s, Value for y is %2$s, Value for z is %3$s</string>
+    <string name="acc_sq_value">acceleration value - %1$s</string>
+    <string name="newValue">This value is  %1$s</string>
+</resources>
