@@ -5,9 +5,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
-import android.os.CountDownTimer
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.cs528.android.falldetection.databinding.ActivityMainBinding
 import java.text.DecimalFormat
@@ -28,6 +26,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
+    private var grav : Sensor? = null
 
     private var lastMovementFall: Long = 0
     private var movementStart: Long = 0
@@ -35,6 +34,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var loAccelerationReader : Float = SensorManager.GRAVITY_EARTH
     private var mAccel: Float = 0.0F
     private val mTimer = Timer()
+    private val gravity = FloatArray(3)
+    private val linear_acceleration = FloatArray(3)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +58,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 SensorManager.SENSOR_DELAY_NORMAL)
         }
 
+        grav = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
+
         //register gyroscope
         /*gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
@@ -73,6 +76,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent?) {
         when (event?.sensor?.type) {
             Sensor.TYPE_ACCELEROMETER -> {
+
+                for (i in 0..2) {
+                    gravity[i] = (0.1 * event.values[i] + 0.9 * gravity[i]).toFloat()
+                }
 
                 movementStart = System.currentTimeMillis()
 
@@ -113,14 +120,30 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                  */
 
 
-                val delta: Float = loAccelerationReader - loAccelerationReaderPast
-                mAccel = mAccel * 0.9f + delta
+                //val delta: Float = loAccelerationReader - loAccelerationReaderPast
+                //mAccel = mAccel * 0.9f + delta
+
+                val alpha: Float = 0.8f
+
+                // Isolate the force of gravity with the low-pass filter.
+                gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0]
+                gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
+                gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
+
+                // Remove the gravity contribution with the high-pass filter.
+                linear_acceleration[0] = event.values[0] - gravity[0]
+                linear_acceleration[1] = event.values[1] - gravity[1]
+                linear_acceleration[2] = event.values[2] - gravity[2]
+
+                mAccel += linear_acceleration[2]
+
                 mAccel = java.lang.Double.parseDouble(precision.format(mAccel)).toFloat()
                 mAccel = abs(mAccel)
 
                 binding.allTheOtherNumbers.text = getString(R.string.acc_sq_value, mAccel.toString())
 
                 if(mAccel>5.0f){
+                    binding.fall.text = "YOU FELL"
                     //Toast.makeText(this,"Exceeded the acceleration, starting timer of 2s",Toast.LENGTH_SHORT).show()
                     mTimer.schedule(object : TimerTask() {
                         //start after 2 second delay to make acceleration values "rest"
@@ -128,6 +151,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                             //firstTimer.start()
                         }
                     }, 2000)
+                }
+                else{
+                    binding.fall.text = "STABLE"
                 }
             }
 
