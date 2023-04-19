@@ -5,6 +5,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.cs528.android.falldetection.databinding.ActivityMainBinding
@@ -36,6 +37,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private val mTimer = Timer()
     private val gravity = FloatArray(3)
     private val linear_acceleration = FloatArray(3)
+
+    var fallen : Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,6 +147,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
                 if(mAccel>5.0f){
                     binding.fall.text = "YOU FELL"
+                    startCountdown()
+
                     //Toast.makeText(this,"Exceeded the acceleration, starting timer of 2s",Toast.LENGTH_SHORT).show()
                     mTimer.schedule(object : TimerTask() {
                         //start after 2 second delay to make acceleration values "rest"
@@ -171,6 +176,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
 
+    }
+    fun startCountdown(): Unit
+    {
+        val timer = object: CountDownTimer(60000, 1000) {
+            override fun onTick(p0: Long) {
+                binding.timerText.text = "Time Left: $p0"
+            }
+            override fun onFinish() {
+                fallen = true
+            }
+        }
+        timer.start()
     }
             /*
     var firstTimer: CountDownTimer = object : CountDownTimer(40*1000, 1000) {
