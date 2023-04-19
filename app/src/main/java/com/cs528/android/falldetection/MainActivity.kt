@@ -149,6 +149,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                     binding.fall.text = "YOU FELL"
                     startCountdown()
 
+                    onPause()
+
                     //Toast.makeText(this,"Exceeded the acceleration, starting timer of 2s",Toast.LENGTH_SHORT).show()
                     mTimer.schedule(object : TimerTask() {
                         //start after 2 second delay to make acceleration values "rest"
@@ -179,12 +181,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
     fun startCountdown(): Unit
     {
-        val timer = object: CountDownTimer(60000, 1000) {
+        val timer = object: CountDownTimer(60000, 1) {
             override fun onTick(p0: Long) {
-                binding.timerText.text = "Time Left: $p0"
+                var t : Long = p0/1000
+                binding.timerText.text = "Time Left: $t"
             }
             override fun onFinish() {
                 fallen = true
+                onResume()
             }
         }
         timer.start()
@@ -238,6 +242,23 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onDestroy(){
         sensorManager.unregisterListener(this)
         super.onDestroy()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        accelerometer?.also {
+            sensorManager.registerListener(
+                this,
+                it,
+                SensorManager.SENSOR_DELAY_NORMAL,
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
     }
 
 }
