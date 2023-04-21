@@ -12,9 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.cs528.android.falldetection.databinding.ActivityMainBinding
 import java.text.DecimalFormat
 import java.util.*
-import kotlin.math.abs
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.math.abs
 
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
@@ -25,15 +25,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private lateinit var binding : ActivityMainBinding
 
     private lateinit var sensorManager : SensorManager
-
     private var accelerometer: Sensor? = null
-    private var gyroscope: Sensor? = null
 
-    private var lastMovementFall: Long = 0
-    private var movementStart: Long = 0
-    private var loAccelerationReaderPast : Float = SensorManager.GRAVITY_EARTH
-    private var loAccelerationReader : Float = SensorManager.GRAVITY_EARTH
+    private var accelerationReaderPast : Float = SensorManager.GRAVITY_EARTH
+    private var accelerationReader : Float = SensorManager.GRAVITY_EARTH
     private var mAccel: Float = 0.0F
+
+    private var movementStart: Long = 0
+
     private val mTimer = Timer()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,52 +56,38 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 SensorManager.SENSOR_DELAY_NORMAL)
         }
 
-        //register gyroscope
-        /*gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-
-        gyroscope?.also {
-            sensorManager.registerListener(this,
-                it,
-                SensorManager.SENSOR_DELAY_NORMAL,
-                SensorManager.SENSOR_DELAY_NORMAL)
-        }
-         */
-
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
         when (event?.sensor?.type) {
             Sensor.TYPE_ACCELEROMETER -> {
-
                 movementStart = System.currentTimeMillis()
 
                 val x = event.values[0]
                 val y = event.values[1]
                 val z = event.values[2]
 
-                loAccelerationReaderPast = loAccelerationReader
+                accelerationReaderPast = accelerationReader
 
-                /*
-                //check if the values are being retrieved
-                binding.allTheNumbers.text =
-                    getString(R.string.all_the_numbers, x.toString(), y.toString(), z.toString())
-                 */
-
-                loAccelerationReader = sqrt(
+                accelerationReader = sqrt(
                     x.toDouble().pow(2.0) + y.toDouble().pow(2.0) + z.toDouble().pow(2.0)
                 ).toFloat()
 
-                // This will print a number upto 8 decimal points
-                // binding.allTheNumbers.text = getString(R.string.acc_sq_value, loAccelerationReader.toString())
-
-                if(loAccelerationReader<1.0){
-                    Log.d("FreeFall", loAccelerationReader.toString())
+                if(accelerationReader<0.5){
+                    Log.d("FreeFall", accelerationReader.toString())
+                    Toast.makeText(this,"free fall",Toast.LENGTH_SHORT).show()
+                    mTimer.schedule(object : TimerTask() {
+                        //start after 2 second delay to make acceleration values "rest"
+                        override fun run() {
+                            firstTimer.start()
+                        }
+                    }, 2000)
                 }
 
                 val precision = DecimalFormat("0.00")
-                val ldAccRound = java.lang.Double.parseDouble(precision.format(loAccelerationReader))
+                val ldAccRound = java.lang.Double.parseDouble(precision.format(accelerationReader))
 
-                binding.allTheNumbers.text = getString(R.string.acc_sq_value, ldAccRound.toString())
+                binding.allTheNumbers.text = getString(R.string.acc_value, ldAccRound.toString())
 
                 //ldAccRound > 0.3 && ldAccRound < 1.2   0.3<ldAccRound<1.2
 
@@ -112,80 +97,72 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 }
                  */
 
-
-                val delta: Float = loAccelerationReader - loAccelerationReaderPast
+                /*
+                val delta: Float = accelerationReader - accelerationReaderPast
                 mAccel = mAccel * 0.9f + delta
-                mAccel = java.lang.Double.parseDouble(precision.format(mAccel)).toFloat()
                 mAccel = abs(mAccel)
 
-                binding.allTheOtherNumbers.text = getString(R.string.acc_sq_value, mAccel.toString())
+                //binding.allTheOtherNumbers.text = getString(R.string.m_accel, mAccel.toString())
 
                 if(mAccel>5.0f){
-                    //Toast.makeText(this,"Exceeded the acceleration, starting timer of 2s",Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this,"Exceeded the acceleration, starting timer of 40s",Toast.LENGTH_SHORT).show()
+                    Log.d("exceed",mAccel.toString())
                     mTimer.schedule(object : TimerTask() {
                         //start after 2 second delay to make acceleration values "rest"
                         override fun run() {
-                            //firstTimer.start()
+                            firstTimer.start()
                         }
                     }, 2000)
-                }
+                }*/
             }
-
-            /*Sensor.TYPE_GYROSCOPE -> {
-                val gyro_x = event.values[0]
-                val gyro_y = event.values[1]
-                val gyro_z = event.values[2]
-
-                binding.allTheOtherNumbers.text =
-                    getString(R.string.all_the_other_numbers, gyro_x.toString(), gyro_y.toString(), gyro_z.toString())
-            }
-             */
-
-
         }
-
-
     }
-            /*
-    var firstTimer: CountDownTimer = object : CountDownTimer(40*1000, 1000) {
-        //fall registration timer
-        override fun onTick(millisUntilFinished: Long) {
-            //if there is movement before 30 seconds pass cancel the timer
-            if (mAccel > 4.0f) {
-                val toast = Toast.makeText(
-                    applicationContext,
-                    "Fall not Detected, you moved.", Toast.LENGTH_SHORT
-                )
-                toast.show()
-                cancel()
-            }
-        }
 
-        override fun onFinish() {
+var firstTimer: CountDownTimer = object : CountDownTimer(30*1000, 1000) {
+    //recovery timer
+    override fun onTick(millisUntilFinished: Long) {
+        //if there is movement before 30 seconds, cancel the timer
+        val ms1 = millisUntilFinished/1000
+        binding.allTheOtherNumbers.text = getString(R.string.timer , ms1.toString())
+        //if (mAccel > 2.0f) {
+        if(accelerationReader>11.0f){
             val toast = Toast.makeText(
                 applicationContext,
-                "Fall Detected,registering after 30 seconds", Toast.LENGTH_SHORT
+                "You moved.", Toast.LENGTH_SHORT
             )
             toast.show()
-            secondTimer.start()
+            Log.d("Moved", accelerationReader.toString())
+            cancel()
         }
     }
 
-    var secondTimer: CountDownTimer = object : CountDownTimer((30 * 1000).toLong(), 1000) {
-        //fall confirmation timer
-        override fun onTick(millisUntilFinished: Long) {
-            binding.allTheOtherNumbers.text = getString(R.string.newValue , millisUntilFinished.toString())
-        }
-
-        override fun onFinish() {
-            val toast = Toast.makeText(
-                applicationContext,
-                "Fall Registered!", Toast.LENGTH_SHORT
-            )
-            toast.show()
-        }
+    override fun onFinish() {
+        val toast = Toast.makeText(
+            applicationContext,
+            "Fall Detected!!", Toast.LENGTH_SHORT
+        )
+        toast.show()
+        //secondTimer.start()
     }
-    */
+
+}
+
+var secondTimer: CountDownTimer = object : CountDownTimer((30 * 1000).toLong(), 1000) {
+    //fall confirmation timer
+    override fun onTick(millisUntilFinished: Long) {
+        val ms = millisUntilFinished/1000
+        binding.allTheOtherNumbers.text = getString(R.string.timer , ms.toString())
+    }
+
+    override fun onFinish() {
+        val toast = Toast.makeText(
+            applicationContext,
+            "Fall Registered!", Toast.LENGTH_SHORT
+        )
+        toast.show()
+        binding.allTheOtherNumbers.text = getString(R.string.timer , "Registered the fall")
+    }
+}
 
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
