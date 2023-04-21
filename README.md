@@ -1,4 +1,4 @@
-# fall-detection-accelerometer
+# Detect falls using accelerometer data
 issues - needs testing
 
 1. Detect free fall
